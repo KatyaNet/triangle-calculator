@@ -1,4 +1,6 @@
 /* Triangle calculator */
+
+//добавить описание
 window.onload = function () {
 
   // Reset fields
@@ -35,36 +37,45 @@ window.onload = function () {
 
       switch (Object.keys(usedSides).length) {
       case 3:
-        if (usedSides.side_a < usedSides.side_b + usedSides.side_c &&
-          usedSides.side_b < usedSides.side_a + usedSides.side_c &&
-          usedSides.side_c < usedSides.side_a + usedSides.side_b) {
 
-          usedAngles.angle_a = (Math.acos((Math.pow(usedSides.side_b, 2) + Math.pow(usedSides.side_c, 2) - Math.pow(usedSides.side_a, 2)) / (2 * usedSides.side_b * usedSides.side_c)) * 180) / Math.PI;
-          printValue(document.getElementById('angle_a'), usedAngles.angle_a);
-
-          usedAngles.angle_b = (Math.acos((Math.pow(usedSides.side_a, 2) + Math.pow(usedSides.side_c, 2) - Math.pow(usedSides.side_b, 2)) / (2 * usedSides.side_a * usedSides.side_c)) * 180) / Math.PI;
-          printValue(document.getElementById('angle_b'), usedAngles.angle_b);
-
-          usedAngles.angle_c = 180 - (usedAngles.angle_a + usedAngles.angle_b);
-          printValue(document.getElementById('angle_c'), usedAngles.angle_c);
-          
-          // for(let angle of angles) {
-            // usedAngles[angle]=(Math.acos((Math.pow(usedSides.side_b, 2) + Math.pow(usedSides.side_c, 2) - Math.pow(usedSides.side_a, 2)) / (2 * usedSides.side_b * usedSides.side_c)) * 180) / Math.PI;
-          // }
-
-          getPerimeter(usedSides);
-          getArea(usedSides, usedAngles);
-
-        } else {
-          cleanUnusedFields();
-          alert('Длина одной из сторон больше, чем сумма двух других!!!');
+        if (sidesHasErrors(usedSides, sides)) {
+          printError('Длина одной из сторон больше, чем сумма двух других!');
+          break;
         }
+
+        getAngles(usedSides, usedAngles, angles);
+        getPerimeter(usedSides);
+        getArea(usedSides, usedAngles);
+
         break;
 
-        // case 2:
+      case 2:
+        let usedAngle = Object.keys(usedAngles)[0];
+        let usedAngleNumber = angles.indexOf(usedAngle);
+        let oppositeSide = sides[usedAngleNumber];
 
-        // break;
+        if (usedSides.hasOwnProperty(oppositeSide)) {
+
+          printError('Угол рядом с неизвестной стороной');
+
+        } else {
+
+          getThirdSide(usedSides, usedAngles);
+          getAngles(usedSides, usedAngles, angles, usedAngle);
+
+        }
+
+        getPerimeter(usedSides);
+        getArea(usedSides, usedAngles);
+
+        break;
       case 1:
+
+        if (anglesHasErrors(usedAngles)) {
+          printError('Введено некорректное значение угла!');
+          break;
+        }
+
         let sumUsedAngles = 0;
         for (let angle in usedAngles) {
           sumUsedAngles += usedAngles[angle];
@@ -87,23 +98,24 @@ window.onload = function () {
               printValue(document.getElementById(sides[i]), usedSides[sides[i]]);
             }
           }
-          
+
           getPerimeter(usedSides);
           getArea(usedSides, usedAngles);
 
+        } else {
+          printError('Сумма двух углов больше 180°!');
         }
         break;
-      default:
-        // document.getElementById('perimeter').value = 'Enter the value of at least one side!';
-        // document.getElementById('perimeter').nextElementSibling.classList.add('active');
+
+      case 0:
+        printError('Необходимо указать значение хотя бы одной стороны!');
       }
-
-
 
     } else {
 
       // Enable all fields
       inputParameters.forEach(parameter => parameter.disabled = false);
+
       cleanUnusedFields();
 
     }
@@ -112,28 +124,84 @@ window.onload = function () {
 
 };
 
-function getPerimeter(sides) {
+function sidesHasErrors(usedSides, sides) {
+  for (let i = 0; i < sides.length; i++) {
+    let a = Object.values(usedSides).slice(i - 2)[0];
+    let b = Object.values(usedSides).slice(i - 1)[0];
+    let c = Object.values(usedSides)[i];
+
+    if (a > b + c) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function anglesHasErrors(usedAngles) {
+  for (let angle in usedAngles) {
+    if (usedAngles[angle] <= 0 || usedAngles[angle] >= 180) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getThirdSide(usedSides, usedAngles) {
+  let inputThirdSide = document.querySelector('.side:not(.used)');
+  let thirdSide = inputThirdSide.id;
+
+  let a = Object.values(usedSides)[0];
+  let b = Object.values(usedSides)[1];
+  let angle = Object.values(usedAngles)[0];
+
+  usedSides[thirdSide] = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) - 2 * a * b * Math.cos(angle * (Math.PI / 180)));
+  printValue(inputThirdSide, usedSides[thirdSide]);
+}
+
+function getAngles(usedSides, usedAngles, angles, usedAngle) {
+  for (let i = 0; i < angles.length; i++) {
+    if (angles[i] != usedAngle) {
+
+      let a = Object.values(usedSides).slice(i - 2)[0];
+      let b = Object.values(usedSides).slice(i - 1)[0];
+      let c = Object.values(usedSides)[i];
+
+      usedAngles[angles[i]] = (Math.acos((Math.pow(a, 2) + Math.pow(b, 2) - Math.pow(c, 2)) / (2 * a * b)) * 180) / Math.PI;
+      printValue(document.getElementById(angles[i]), usedAngles[angles[i]]);
+
+    }
+  }
+}
+
+function getPerimeter(usedSides) {
   let inputPerimeter = document.getElementById('perimeter');
 
   let perimeter = 0;
-  for (let value of Object.values(sides)) {
+  for (let value of Object.values(usedSides)) {
     perimeter += value;
   }
 
   printValue(inputPerimeter, perimeter);
 }
 
-function getArea(sides, angles) {
+function getArea(usedSides, usedAngles) {
   let inputArea = document.getElementById('area');
-  
-  let area = sides['side_a'] * sides['side_b'] * Math.sin(angles['angle_c'] * (Math.PI / 180)) / 2;
+
+  let area = usedSides['side_a'] * usedSides['side_b'] * Math.sin(usedAngles['angle_c'] * (Math.PI / 180)) / 2;
 
   printValue(inputArea, area);
 }
 
 function printValue(field, value) {
-  field.value = +value.toFixed(2);
+  field.value = +value.toFixed(5);
   field.nextElementSibling.classList.add('active');
+}
+
+function printError(message) {
+  document.querySelectorAll('input:not(.used)').forEach(input => input.value = message);
+  document.querySelectorAll('input:not(.used)').forEach(input => input.nextElementSibling.classList.add('active'));
 }
 
 function cleanUnusedFields() {
