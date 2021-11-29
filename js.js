@@ -1,6 +1,5 @@
 /* Triangle calculator */
 
-//добавить описание
 window.onload = function () {
 
   // Reset fields
@@ -38,7 +37,7 @@ window.onload = function () {
       switch (Object.keys(usedSides).length) {
       case 3:
 
-        if (sidesHasErrors(usedSides, sides)) {
+        if (sidesHasError(usedSides, sides)) {
           printError('Длина одной из сторон больше, чем сумма двух других!');
           break;
         }
@@ -51,18 +50,14 @@ window.onload = function () {
 
       case 2:
         let usedAngle = Object.keys(usedAngles)[0];
-        let usedAngleNumber = angles.indexOf(usedAngle);
-        let oppositeSide = sides[usedAngleNumber];
+        let oppositeSide = sides[angles.indexOf(usedAngle)];
 
         if (usedSides.hasOwnProperty(oppositeSide)) {
-
-          printError('Угол рядом с неизвестной стороной');
-
+          printError('Не достаточно параметров!');
+          break;
         } else {
-
           getThirdSide(usedSides, usedAngles);
           getAngles(usedSides, usedAngles, angles, usedAngle);
-
         }
 
         getPerimeter(usedSides);
@@ -71,7 +66,7 @@ window.onload = function () {
         break;
       case 1:
 
-        if (anglesHasErrors(usedAngles)) {
+        if (anglesHasError(usedAngles)) {
           printError('Введено некорректное значение угла!');
           break;
         }
@@ -81,30 +76,17 @@ window.onload = function () {
           sumUsedAngles += usedAngles[angle];
         }
 
-        if (sumUsedAngles <= 180) {
-
-          let inputThirdAngle = document.querySelector('.angle:not(.used)');
-          let thirdAngle = inputThirdAngle.id;
-
-          usedAngles[thirdAngle] = 180 - sumUsedAngles;
-          printValue(inputThirdAngle, usedAngles[thirdAngle]);
-
-          let usedSide = Object.keys(usedSides)[0];
-          let usedSideNumber = sides.indexOf(usedSide);
-
-          for (let i = 0; i < sides.length; i++) {
-            if (sides[i] != usedSide) {
-              usedSides[sides[i]] = usedSides[usedSide] * Math.sin(usedAngles[angles[i]] * (Math.PI / 180)) / Math.sin(usedAngles[angles[usedSideNumber]] * (Math.PI / 180));
-              printValue(document.getElementById(sides[i]), usedSides[sides[i]]);
-            }
-          }
-
-          getPerimeter(usedSides);
-          getArea(usedSides, usedAngles);
-
-        } else {
-          printError('Сумма двух углов больше 180°!');
+        if (sumUsedAnglesHasError(sumUsedAngles)) {
+          printError('Сумма двух углов равна или больше 180°!');
+          break;
         }
+
+        getThirdAngle(usedAngles, sumUsedAngles);
+        getSides(usedSides, usedAngles, sides, angles)
+
+        getPerimeter(usedSides);
+        getArea(usedSides, usedAngles);
+
         break;
 
       case 0:
@@ -124,7 +106,7 @@ window.onload = function () {
 
 };
 
-function sidesHasErrors(usedSides, sides) {
+function sidesHasError(usedSides, sides) {
   for (let i = 0; i < sides.length; i++) {
     let a = Object.values(usedSides).slice(i - 2)[0];
     let b = Object.values(usedSides).slice(i - 1)[0];
@@ -134,18 +116,20 @@ function sidesHasErrors(usedSides, sides) {
       return true;
     }
   }
-
-  return false;
 }
 
-function anglesHasErrors(usedAngles) {
+function anglesHasError(usedAngles) {
   for (let angle in usedAngles) {
     if (usedAngles[angle] <= 0 || usedAngles[angle] >= 180) {
       return true;
     }
   }
+}
 
-  return false;
+function sumUsedAnglesHasError(sumUsedAngles) {
+  if (sumUsedAngles >= 180) {
+    return true;
+  }
 }
 
 function getThirdSide(usedSides, usedAngles) {
@@ -158,6 +142,30 @@ function getThirdSide(usedSides, usedAngles) {
 
   usedSides[thirdSide] = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2) - 2 * a * b * Math.cos(angle * (Math.PI / 180)));
   printValue(inputThirdSide, usedSides[thirdSide]);
+}
+
+function getThirdAngle(usedAngles, sumUsedAngles) {
+  let inputThirdAngle = document.querySelector('.angle:not(.used)');
+  let thirdAngle = inputThirdAngle.id;
+
+  usedAngles[thirdAngle] = 180 - sumUsedAngles;
+  printValue(inputThirdAngle, usedAngles[thirdAngle]);
+}
+
+function getSides(usedSides, usedAngles, sides, angles) {
+  let usedSide = Object.keys(usedSides)[0];
+  let usedSideNumber = sides.indexOf(usedSide);
+
+  for (let i = 0; i < sides.length; i++) {
+    if (sides[i] != usedSide) {
+      let a = usedSides[usedSide];
+      let angleA = usedAngles[angles[i]];
+      let angleB = usedAngles[angles[usedSideNumber]];
+
+      usedSides[sides[i]] = a * Math.sin(angleA * (Math.PI / 180)) / Math.sin(angleB * (Math.PI / 180));
+      printValue(document.getElementById(sides[i]), usedSides[sides[i]]);
+    }
+  }
 }
 
 function getAngles(usedSides, usedAngles, angles, usedAngle) {
@@ -176,22 +184,22 @@ function getAngles(usedSides, usedAngles, angles, usedAngle) {
 }
 
 function getPerimeter(usedSides) {
-  let inputPerimeter = document.getElementById('perimeter');
-
   let perimeter = 0;
   for (let value of Object.values(usedSides)) {
     perimeter += value;
   }
 
-  printValue(inputPerimeter, perimeter);
+  printValue(document.getElementById('perimeter'), perimeter);
 }
 
 function getArea(usedSides, usedAngles) {
-  let inputArea = document.getElementById('area');
+  let a = Object.values(usedSides)[0];
+  let b = Object.values(usedSides)[1];
+  let angle = Object.values(usedAngles)[0];
 
-  let area = usedSides['side_a'] * usedSides['side_b'] * Math.sin(usedAngles['angle_c'] * (Math.PI / 180)) / 2;
+  let area = a * b * Math.sin(angle * (Math.PI / 180)) / 2;
 
-  printValue(inputArea, area);
+  printValue(document.getElementById('area'), area);
 }
 
 function printValue(field, value) {
